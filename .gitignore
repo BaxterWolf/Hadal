@@ -1,0 +1,22 @@
+# Build output
+pc/build/
+pc/build-fuzz/
+pc/fuzz-corpus/
+android/build/
+android/app/build/
+android/.gradle/
+android/.kotlin/
+
+# Machine specific
+.vs/
+.vscode/
+pc/RC*
+android/local.properties
+android/.idea/
+*.iml
+
+# Signing keys
+*.jks
+*.keystore
+pc/crash-*
+pc/slow-unit-*

@@ -1,0 +1,15 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_bg" android:padding="4dp">
+    <TextView android:id="@+id/w_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center"
+        android:text="Hadal · tap to refresh" android:textColor="#FF7FC7B0" android:textSize="11sp" android:singleLine="true" android:ellipsize="end"
+        android:fontFamily="monospace" android:paddingTop="2dp" android:background="?android:attr/selectableItemBackground" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal">
+    <ImageButton android:id="@+id/w_lock" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_lock" android:contentDescription="Lock PC" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    <ImageButton android:id="@+id/w_monitors" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_monitor" android:contentDescription="Monitors off" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    <ImageButton android:id="@+id/w_prev" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_prev" android:contentDescription="Previous" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    <ImageButton android:id="@+id/w_play" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_play" android:contentDescription="Play/pause" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    <ImageButton android:id="@+id/w_next" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_next" android:contentDescription="Next" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    <ImageButton android:id="@+id/w_voldown" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_vol_down" android:contentDescription="Volume down" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    <ImageButton android:id="@+id/w_volup" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:src="@drawable/ic_vol_up" android:contentDescription="Volume up" android:background="?android:attr/selectableItemBackgroundBorderless" android:tint="#FFC9A45C" />
+    </LinearLayout>
+</LinearLayout>

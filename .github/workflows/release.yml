@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        name: Resolve version
+        run: |
+          ref="${GITHUB_REF_NAME#v}"
+          if [[ ! "$ref" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then ref="0.0.1"; fi
+          IFS=. read -r a b c <<< "$ref"
+          echo "version=${a}.${b:-0}.${c:-0}" >> "$GITHUB_OUTPUT"
+
+  pc:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build
+        run: |
+          cmake -S pc -B pc/build -A x64 "-DHADAL_VERSION=${{ needs.version.outputs.version }}"
+          cmake --build pc/build --config Release
+      - name: Selftest
+        run: pc\build\Release\hadal-svc.exe --selftest
+      - name: Package
+        shell: pwsh
+        run: |
+          $d = New-Item -ItemType Directory -Force out/Hadal
+          Copy-Item pc/build/Release/hadal-svc.exe, pc/build/Release/hadal-tray.exe, pc/build/Release/hadal-svc.pdb, pc/build/Release/hadal-tray.pdb, pc/Install.cmd, pc/install.ps1, pc/Uninstall.cmd, pc/uninstall.ps1 $d
+          Compress-Archive -Path out/Hadal -DestinationPath Hadal-PC.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: pc
+          path: Hadal-PC.zip
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.HADAL_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Add the HADAL_KEYSTORE_B64 and HADAL_KEY_PASSWORD secrets"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/hadal.jks"
+      - name: Build
+        working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_HADAL_KEYSTORE: ${{ runner.temp }}/hadal.jks
+          ORG_GRADLE_PROJECT_HADAL_KEY_PASSWORD: ${{ secrets.HADAL_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_HADAL_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Hadal.apk"
+      - run: rm -f "$RUNNER_TEMP/hadal.jks"
+        if: always()
+      - uses: actions/upload-artifact@v6
+        with:
+          name: android
+          path: Hadal.apk
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [version, pc, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" Hadal-PC.zip Hadal.apk --repo "$GITHUB_REPOSITORY" --title "Hadal ${{ needs.version.outputs.version }}" --generate-notes --notes "Built by [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
