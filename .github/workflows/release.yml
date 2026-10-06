@@ -39,7 +39,7 @@ jobs:
           $d = New-Item -ItemType Directory -Force out/Hadal
           Copy-Item pc/build/Release/hadal-svc.exe, pc/build/Release/hadal-tray.exe, pc/build/Release/hadal-svc.pdb, pc/build/Release/hadal-tray.pdb, pc/Install.cmd, pc/install.ps1, pc/Uninstall.cmd, pc/uninstall.ps1 $d
           Compress-Archive -Path out/Hadal -DestinationPath Hadal-PC.zip
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pc
           path: Hadal-PC.zip
@@ -71,7 +71,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Hadal.apk"
       - run: rm -f "$RUNNER_TEMP/hadal.jks"
         if: always()
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android
           path: Hadal.apk
