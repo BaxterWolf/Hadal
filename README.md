@@ -22,6 +22,14 @@ Hadal turns your Android phone into a remote for your Windows PC. Check on it, c
 
 It only talks over your own [Tailscale](https://tailscale.com) network. The PC never listens on the internet, only answers your paired phone, and only does things from a fixed list. No accounts, no cloud, no relay servers of ours.
 
+<div align="center">
+<img src=".github/assets/control.png" alt="Control screen: status, media, quick actions and apps" width="30%">&nbsp;
+<img src=".github/assets/performance.png" alt="Performance screen: CPU, memory and GPU with history" width="30%">&nbsp;
+<img src=".github/assets/touchpad.png" alt="Touchpad screen with click buttons, typing and shortcuts" width="30%">
+<br><br>
+<img src=".github/assets/stream.png" alt="Streaming the PC screen in landscape, with the stream controls open" width="92%">
+</div>
+
 ## Features
 
 <table>
@@ -140,7 +148,7 @@ flowchart LR
     tray -. "screen + sound" .-> svc
 ```
 
-- **`hadal-svc`** is a small Windows service. It listens on the PC's Tailscale address only, checks who's asking, does the power actions itself and samples performance. It runs as LocalService with every privilege removed except shutdown.
+- **`hadal-svc`** is a small Windows service. It listens on the PC's Tailscale address only, checks who's asking, does the power actions itself and samples performance. It runs as LocalService with every privilege removed except shutdown and the basic one every process needs to open folders.
 - **`hadal-tray`** runs in your session. It does everything that needs your desktop: media, sound, input, clipboard, files, screenshots and the encoder for streaming. Every action from the phone shows up as a notification.
 - **The app** is plain Kotlin and Jetpack Compose. Streams are decoded in hardware with MediaCodec.
 
@@ -154,9 +162,9 @@ Hadal is built on the idea that a remote control for your PC should be boring to
 |---|---|
 | 🌐 **Network** | Listens only on the Tailscale IP. The firewall rule only allows `100.64.0.0/10`, and the code checks again. |
 | 📌 **Phone pinning** | The first phone to log in after pairing is the only address the PC answers. Everyone else is refused before the key is even checked. |
-| 🔑 **Key** | 256-bit random token, compared in constant time, stored on the phone encrypted with the Android Keystore. 10 wrong tries lock everyone out for 5 minutes. |
+| 🔑 **Key** | 256-bit random token, compared in constant time, stored on the phone encrypted with the Android Keystore. 10 wrong tries lock that device out for 5 minutes. |
 | 📜 **Fixed actions** | The network protocol only accepts a fixed list of actions. No endpoint takes a shell command, and files only move through two fixed folders. |
-| 🔒 **Least privilege** | The service has one privilege (shutdown). Desktop work runs as you, behind a named pipe only SYSTEM, the service and you can open. |
+| 🔒 **Least privilege** | The service keeps only the shutdown privilege, plus the basic one every process needs to open folders. Desktop work runs as you, behind a named pipe only SYSTEM, the service and you can open. |
 | 🔔 **Visible** | Every action is logged and shows a notification on the PC. You can mute routine ones, but security alerts, streams and touchpad sessions always notify. |
 | 👆 **App lock** | Optional fingerprint prompt every time the app opens. |
 
@@ -192,7 +200,9 @@ Rules are allow-lists, so any device not named here can't reach either machine.
 
 <br>
 
-Right-click the tray helmet → **Regenerate token**. The old key and the phone pin are gone instantly, and any live stream or touchpad session is cut off. Pair the new phone with the fresh QR.
+1. Right-click the tray helmet → **Regenerate token**. The old key and the phone pin are gone instantly, and any live stream or touchpad session is cut off.
+2. In the [Tailscale admin console](https://login.tailscale.com/admin/machines), remove the lost phone from your tailnet. That's what really locks it out: it can no longer reach the PC at all.
+3. Pair the new phone with the fresh QR.
 
 </details>
 
@@ -342,6 +352,15 @@ Some anti-cheat systems block remote input while their game runs. Windows also w
 <br>
 
 A sleeping PC isn't on the network. Wake-on-LAN needs an always-on device on the same LAN, which is on the roadmap.
+
+</details>
+
+<details>
+<summary><b>Does it work for other Windows accounts on the PC?</b></summary>
+
+<br>
+
+Partly. Hadal is set up for the account that installed it. Sleep, restart, shut down and status work whoever is logged in, but everything that needs the desktop (lock, touchpad, streaming, media, files, clipboard) only works while that account is signed in. To move Hadal to another account, uninstall it, then install it again from that account.
 
 </details>
 

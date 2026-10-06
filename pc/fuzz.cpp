@@ -184,8 +184,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     (void)ready;
     if (size < 1) return 0;
     uint8_t flags = data[0];
-    g_fails = 0;
-    g_lockUntil = 0;
+    g_fails.clear();
     g_paused = (flags & 2) != 0;
     setTimer("", 0);
     { std::lock_guard<std::mutex> l(g_tokMu); g_peer = flags & 1 ? PHONE : ""; }

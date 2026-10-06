@@ -22,6 +22,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <condition_variable>
+#include <map>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -885,8 +886,9 @@ static void fileLoop(SOCKET c, Handoff h, std::string peer) {
 
 enum { AFTER_NONE, AFTER_SLEEP, AFTER_INPUT, AFTER_STREAM, AFTER_FILE };
 
-static int g_fails = 0;
-static ULONGLONG g_lockUntil = 0;
+// Per device, so one can't lock out another
+struct Fails { int n = 0; ULONGLONG until = 0; };
+static std::map<std::string, Fails> g_fails;
 
 static int handle(SOCKET c, const std::string& peer, Handoff& ho) {
     // Refuse early
@@ -898,7 +900,8 @@ static int handle(SOCKET c, const std::string& peer, Handoff& ho) {
         fail(c, 403, "this PC is paired with another device");
         return AFTER_NONE;
     }
-    if (GetTickCount64() < g_lockUntil) {
+    auto fl = g_fails.find(peer);
+    if (fl != g_fails.end() && GetTickCount64() < fl->second.until) {
         static ULONGLONG lastLog = 0;
         if (GetTickCount64() - lastLog > 60000) { lastLog = GetTickCount64(); logf("%s: rejected (locked out)", peer.c_str()); }
         fail(c, 429, "too many failed attempts; try again in a few minutes");
@@ -934,16 +937,17 @@ static int handle(SOCKET c, const std::string& peer, Handoff& ho) {
     }
     if (!good) {
         logf("%s: %s -> bad token", peer.c_str(), what.c_str());
-        if (++g_fails >= 10) {
-            g_fails = 0;
-            g_lockUntil = GetTickCount64() + 5 * 60 * 1000;
-            logf("10 failed attempts: locked out for 5 minutes");
-            agentCall("notify security 10 failed login attempts from " + peer + ". Remote control locked for 5 minutes.", 3000);
+        Fails& f = g_fails[peer];
+        if (++f.n >= 10) {
+            f.n = 0;
+            f.until = GetTickCount64() + 5 * 60 * 1000;
+            logf("%s: 10 failed attempts: locked out for 5 minutes", peer.c_str());
+            agentCall("notify security 10 failed login attempts from " + peer + ". That device is locked out for 5 minutes.", 3000);
         }
         fail(c, 401, "bad token");
         return AFTER_NONE;
     }
-    g_fails = 0;
+    g_fails.erase(peer);
     bool poll = r.method == "GET" && (r.path == "/status" || r.path == "/perf");
     if (!poll) logf("%s: %s", peer.c_str(), what.c_str()); // Skip polls
 

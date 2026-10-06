@@ -278,7 +278,9 @@ template <class Op> static auto wait(Op op) {
 }
 
 static GlobalSystemMediaTransportControlsSession mediaSession() {
+    static std::mutex mu;
     static GlobalSystemMediaTransportControlsSessionManager mgr{nullptr};
+    std::lock_guard<std::mutex> l(mu);
     try {
         if (!mgr) mgr = wait(GlobalSystemMediaTransportControlsSessionManager::RequestAsync());
         return mgr.GetCurrentSession();
@@ -294,6 +296,22 @@ static std::string mediaJson() {
         return "{\"app\":" + jstr(winrt::to_string(s.SourceAppUserModelId())) + ",\"title\":" + jstr(winrt::to_string(p.Title())) +
                ",\"artist\":" + jstr(winrt::to_string(p.Artist())) + ",\"playing\":" + (playing ? "true" : "false") + "}";
     } catch (...) { return "null"; }
+}
+
+// Cached so status never waits on media apps
+static std::mutex g_mediaMu;
+static std::string g_media = "null";
+static std::atomic<ULONGLONG> g_mediaAsked{0};
+
+// Only while the phone is asking
+static void mediaLoop() {
+    winrt::init_apartment();
+    for (;; Sleep(1500)) {
+        if (GetTickCount64() - g_mediaAsked > 15000) continue;
+        std::string j = mediaJson();
+        std::lock_guard<std::mutex> l(g_mediaMu);
+        g_media = j;
+    }
 }
 
 static bool media(const std::string& a) {
@@ -648,8 +666,12 @@ static std::string run(const std::string& req) {
               wide(rest.find(' ') == std::string::npos ? rest : rest.substr(rest.find(' ') + 1)));
         return "+";
     }
-    if (req == "info")
-        return "+{\"fg\":" + jstr(fgApp()) + "," + volJson() + ",\"media\":" + mediaJson() + ",\"display\":" + jstr(displayMode()) + "}";
+    if (req == "info") {
+        std::string m;
+        g_mediaAsked = GetTickCount64();
+        { std::lock_guard<std::mutex> l(g_mediaMu); m = g_media; }
+        return "+{\"fg\":" + jstr(fgApp()) + "," + volJson() + ",\"media\":" + m + ",\"display\":" + jstr(displayMode()) + "}";
+    }
     if (req == "files") return "+" + listOutbox();
     if (req.rfind("recv ", 0) == 0) {
         size_t sp = req.find(' ', 5);
@@ -1109,6 +1131,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR cmdLine, int) {
     g_wnd = CreateWindowW(L"hadal", L"hadal", WS_OVERLAPPED, 0, 0, 0, 0, nullptr, nullptr, hi, nullptr);
     icon(NIM_ADD);
     std::thread(agentLoop).detach();
+    std::thread(mediaLoop).detach();
     MSG m;
     while (GetMessageW(&m, nullptr, 0, 0)) { TranslateMessage(&m); DispatchMessageW(&m); }
     return 0;
