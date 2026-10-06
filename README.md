@@ -155,10 +155,15 @@ Hadal is built on the idea that a remote control for your PC should be boring to
 | 🌐 **Network** | Listens only on the Tailscale IP. The firewall rule only allows `100.64.0.0/10`, and the code checks again. |
 | 📌 **Phone pinning** | The first phone to log in after pairing is the only address the PC answers. Everyone else is refused before the key is even checked. |
 | 🔑 **Key** | 256-bit random token, compared in constant time, stored on the phone encrypted with the Android Keystore. 10 wrong tries lock everyone out for 5 minutes. |
-| 📜 **Fixed actions** | The phone can only trigger a fixed list of actions. No endpoint runs commands, and files only move through two fixed folders. |
+| 📜 **Fixed actions** | The network protocol only accepts a fixed list of actions. No endpoint takes a shell command, and files only move through two fixed folders. |
 | 🔒 **Least privilege** | The service has one privilege (shutdown). Desktop work runs as you, behind a named pipe only SYSTEM, the service and you can open. |
 | 🔔 **Visible** | Every action is logged and shows a notification on the PC. You can mute routine ones, but security alerts, streams and touchpad sessions always notify. |
 | 👆 **App lock** | Optional fingerprint prompt every time the app opens. |
+
+> [!IMPORTANT]
+> **A paired phone has the same power as you sitting at the PC.** The touchpad, keyboard and screen stream reach everything your Windows session can: any program, any command you could type, anything on screen. The fixed action list limits what the network will accept, not what someone holding the phone can do with it. While Windows is locked, input, screenshots and streaming are refused.
+>
+> Treat the phone and its token like an unlocked PC: keep the app lock on, and regenerate the token if the phone is lost.
 
 <details>
 <summary><b>Lock your tailnet down to just the PC and the phone</b></summary>
@@ -187,7 +192,7 @@ Rules are allow-lists, so any device not named here can't reach either machine.
 
 <br>
 
-Right-click the tray helmet → **Regenerate token**. The old key and the phone pin are gone instantly. Pair the new phone with the fresh QR.
+Right-click the tray helmet → **Regenerate token**. The old key and the phone pin are gone instantly, and any live stream or touchpad session is cut off. Pair the new phone with the fresh QR.
 
 </details>
 
@@ -216,6 +221,12 @@ For serious game streaming use [Moonlight](https://moonlight-stream.org) with Su
 ## Building from source
 
 Releases are built by GitHub Actions straight from the tagged source, never on someone's PC. The [release workflow](.github/workflows/release.yml) compiles the PC side with Visual Studio on a fresh Windows machine, runs the selftest, and builds the APK on a fresh Linux machine, signed with the project key. Every release links to the run that made it, so you can check exactly what went in.
+
+Each release also lists the SHA-256 of every file and carries a signed build attestation, so you can prove a download came from that workflow:
+
+```bash
+gh attestation verify Hadal.apk --repo BaxterWolf/Hadal
+```
 
 To build it yourself:
 

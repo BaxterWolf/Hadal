@@ -26,4 +26,5 @@ Only the latest release gets fixes.
 - Attacks that need code already running as your Windows user or as admin
 - A compromised Tailscale account or a malicious device you added to your own tailnet
 - Physical access to an unlocked phone with the app lock turned off
+- What the paired phone can do through the touchpad, keyboard or stream. That is full access to your Windows session by design, the same as sitting at the PC
 - Anti-cheat software or administrator windows blocking remote input (expected Windows behavior)
