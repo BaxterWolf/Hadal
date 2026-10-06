@@ -26,7 +26,7 @@ jobs:
     needs: version
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build
         run: |
           cmake -S pc -B pc/build -A x64 "-DHADAL_VERSION=${{ needs.version.outputs.version }}"
@@ -39,7 +39,7 @@ jobs:
           $d = New-Item -ItemType Directory -Force out/Hadal
           Copy-Item pc/build/Release/hadal-svc.exe, pc/build/Release/hadal-tray.exe, pc/build/Release/hadal-svc.pdb, pc/build/Release/hadal-tray.pdb, pc/Install.cmd, pc/install.ps1, pc/Uninstall.cmd, pc/uninstall.ps1 $d
           Compress-Archive -Path out/Hadal -DestinationPath Hadal-PC.zip
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pc
           path: Hadal-PC.zip
@@ -48,8 +48,8 @@ jobs:
     needs: version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: 21
@@ -71,7 +71,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Hadal.apk"
       - run: rm -f "$RUNNER_TEMP/hadal.jks"
         if: always()
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android
           path: Hadal.apk
@@ -86,7 +86,7 @@ jobs:
       attestations: write
       artifact-metadata: write
     steps:
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           merge-multiple: true
       - name: Checksums
