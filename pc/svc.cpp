@@ -411,20 +411,37 @@ struct Nvml {
              get(power, "nvmlDeviceGetPowerUsage") && init() == 0;
     }
     std::string json(const std::string& gpuName) {
-        unsigned n = 0;
-        if (!ok || count(&n) != 0) return "";
-        for (unsigned i = 0; i < n; i++) {
-            Dev d;
-            char nm[96] = "";
-            if (handle(i, &d) != 0 || name(d, nm, sizeof nm) != 0 || gpuName != nm) continue;
-            std::string s;
-            unsigned v;
-            if (temp(d, 0 /* NVML_TEMPERATURE_GPU */, &v) == 0) s += ",\"tempC\":" + std::to_string(v);
-            if (fan(d, &v) == 0) s += ",\"fanPct\":" + std::to_string(v);
-            if (power(d, &v) == 0) s += ",\"powerW\":" + std::to_string(v / 1000);
-            return s;
+        long long v[3] = {-1, -1, -1};
+        if (!ok) return "";
+        if (!read(*this, gpuName.c_str(), v)) {
+            ok = false;
+            logf("NVIDIA sensors stopped responding (driver update?); GPU temperature off until restart");
+            return "";
         }
-        return "";
+        std::string s;
+        if (v[0] >= 0) s += ",\"tempC\":" + std::to_string(v[0]);
+        if (v[1] >= 0) s += ",\"fanPct\":" + std::to_string(v[1]);
+        if (v[2] >= 0) s += ",\"powerW\":" + std::to_string(v[2] / 1000);
+        return s;
+    }
+    // A driver update can pull nvml.dll out from under us
+    static bool read(const Nvml& n, const char* gpuName, long long v[3]) {
+        __try {
+            unsigned c = 0, x;
+            if (n.count(&c) != 0) return true;
+            for (unsigned i = 0; i < c; i++) {
+                Dev d;
+                char nm[96] = "";
+                if (n.handle(i, &d) != 0 || n.name(d, nm, sizeof nm) != 0 || strcmp(gpuName, nm) != 0) continue;
+                if (n.temp(d, 0 /* NVML_TEMPERATURE_GPU */, &x) == 0) v[0] = x;
+                if (n.fan(d, &x) == 0) v[1] = x;
+                if (n.power(d, &x) == 0) v[2] = x;
+                break;
+            }
+            return true;
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            return false;
+        }
     }
 };
 

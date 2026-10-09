@@ -423,6 +423,8 @@ std::string videoLoop(Out& out, int maxH, int fps, int mbps, int monitor, bool l
     ComPtr<IMFShutdown> sd;
     if (SUCCEEDED(mft.As(&sd))) sd->Shutdown();
     if (act) act->ShutdownObject();
+    // NVENC still runs queued work after Shutdown, so release late
+    std::thread([keep = std::move(mft), a = std::move(act), g = std::move(gen), s = std::move(sd)] { Sleep(5000); }).detach();
     return err;
 }
 
@@ -430,7 +432,9 @@ std::string videoLoop(Out& out, int maxH, int fps, int mbps, int monitor, bool l
 
 void streamRun(HANDLE pipe, int maxH, int fps, int mbps, int monitor, bool lowLatency, std::function<bool()> stopped) {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-    MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET);
+    // Never MFShutdown: it runs NVENC's leftover work items, which crash
+    static HRESULT mf = MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET);
+    (void)mf;
     Out out;
     out.h = pipe;
     std::thread audio([&] { audioLoop(out, stopped); });
@@ -438,6 +442,5 @@ void streamRun(HANDLE pipe, int maxH, int fps, int mbps, int monitor, bool lowLa
     if (!err.empty()) out.text('E', err);
     out.dead = true;
     audio.join();
-    MFShutdown();
     CoUninitialize();
 }
